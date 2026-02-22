@@ -694,14 +694,14 @@
           <span class="option-letter">A</span>
           <div><div class="option-text">No — I'll only use it on my own machine via a local interface. No outside access.</div></div>
         </button>
-        <button class="option-btn" data-score='{"cw":3,"oc":1,"risk":2}'>
+        <button class="option-btn" data-score='{"cw":2,"oc":1,"risk":2}'>
           <span class="option-letter">B</span>
           <div>
             <div class="option-text">Maybe — I might connect it to Slack, Teams, or Telegram, kept private to my workspace.</div>
             <div class="option-subtext"><span class="risk-tag openclaw">OpenClaw risk rises significantly</span> if the gateway is exposed.</div>
           </div>
         </button>
-        <button class="option-btn" data-score='{"cw":3,"oc":0,"risk":4}'>
+        <button class="option-btn" data-score='{"cw":2,"oc":0,"risk":4}'>
           <span class="option-letter">C</span>
           <div>
             <div class="option-text">Yes — I want to access it from anywhere, possibly via bots or public-facing endpoints.</div>
@@ -850,8 +850,11 @@
     const riskPct = Math.min(100, Math.round((risk / 16) * 100));
 
     const cloudOk        = answers[4] && answers[4].cw >= 2;
-    const hasTechHelp    = answers[1] && answers[1].oc >= 1;
+    const hasTechHelp    = answers[1] && answers[1].oc >= 2; // fixed: only full tech help (A), not "sometimes" (B)
+    const hasSomeTech    = answers[1] && answers[1].oc >= 1; // "sometimes" — enough for guided setup
     const freshWorkspace = answers[2] && answers[2].risk <= -2;
+    const lightUse       = answers[7] && answers[7].cw <= 1; // Q8 answer A (light use)
+    const privacyMinded  = answers[4] && answers[4].oc >= 2; // Q5 A or B (prefers less vendor exposure)
     const highRisk       = riskPct > 55;
     const extremeRisk    = riskPct > 75;
 
@@ -941,15 +944,36 @@
         freshWorkspace ? '' : 'Restrict filesystem access to a dedicated workspace. The more it can see, the larger the blast radius.'
       ].filter(Boolean);
 
+    } else if (hasSomeTech && privacyMinded && lightUse && cloudOk) {
+      profile = 'Profile: Privacy-Conscious Light User';
+      headline = 'OpenClaw is worth considering — your privacy preference and light needs are a good fit.';
+      rec = 'OpenClaw (guided setup)';
+      recDetail = "You don't need full desktop control, you care about minimizing vendor data exposure, and you have some technical help available. OpenClaw with a cloud model (API, not consumer product) and a tightly scoped workspace gives you more control than Cowork without requiring deep technical expertise.";
+      altTool = 'Claude Cowork';
+      altDetail = "A reasonable choice if the OpenClaw setup feels like too much. Cowork is simpler to start with — just be deliberate about which files it can access and keep sensitive data out of its reach.";
+      setupTitle = 'Guided OpenClaw setup';
+      setupSteps = [
+        ['Get your technical helper to do the initial setup', 'The first-time configuration — workspace folder, gateway settings, model connection — is the hardest part. Have someone technical own that step.'],
+        ['Use a dedicated workspace folder from day one', 'Never give it access to your full Documents folder. Create one specific folder and only put files there deliberately.'],
+        ['Use the API version of your chosen model, not the consumer product', 'This keeps data retention lower and gives you clearer privacy guarantees than using the chatbot interface.'],
+        ['Skip ClawHub skills for now', "Don't install any extensions or skills until you're comfortable with the basics. The core agent is much safer than the skill ecosystem."],
+        ['Ask your technical helper to check in periodically', 'A quick review every month or two — updates, permissions, what the agent has access to — keeps the risk manageable.']
+      ];
+      riskFlags = [
+        'OpenClaw skills from ClawHub have included malware — avoid installing any until you understand what they do.',
+        freshWorkspace ? '' : 'A fresh, dedicated workspace folder is essential — do not give it broad file access.',
+        'If your technical helper becomes unavailable long-term, Cowork is the safer fallback.'
+      ].filter(Boolean);
+
     } else {
       profile = 'Profile: Balanced Pragmatist';
-      headline = cw >= oc ? 'Claude Cowork is your best starting point.' : 'OpenClaw is your best fit — with some guidance.';
-      rec = cw >= oc ? 'Claude Cowork' : 'OpenClaw';
-      recDetail = cw >= oc
+      headline = cw > oc ? 'Claude Cowork is your best starting point.' : 'OpenClaw is your best fit — with some guidance.';
+      rec = cw > oc ? 'Claude Cowork' : 'OpenClaw';
+      recDetail = cw > oc
         ? "Your answers suggest Cowork's managed setup fits your needs. You're comfortable with cloud processing and don't want to maintain an open-source agent yourself."
         : 'Your answers lean toward OpenClaw — you want some control and have access to technical help when you need it.';
-      altTool = cw >= oc ? 'OpenClaw' : 'Claude Cowork';
-      altDetail = cw >= oc
+      altTool = cw > oc ? 'OpenClaw' : 'Claude Cowork';
+      altDetail = cw > oc
         ? 'OpenClaw is viable if you have technical help to configure it safely. Without that, Cowork is the lower-maintenance choice.'
         : 'Cowork is a solid fallback — less control, but Anthropic handles security maintenance for you.';
       setupTitle = 'Setup recommendations';
