@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Advisor: Cowork vs OpenClaw</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141418;
+    --border: #1f1f28;
+    --border-bright: #2e2e3d;
+    --text: #e8e8f0;
+    --muted: #6b6b7e;
+    --accent-a: #5b8dee; /* blue: Cowork */
+    --accent-b: #3dd68c; /* green: OpenClaw */
+    --accent-warn: #f0833a;
+    --accent-risk: #e05252;
+    --pill-bg: #1a1a22;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(91,141,238,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(91,141,238,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+  }
+
+  /* HEADER */
+  .header {
+    margin-bottom: 56px;
+  }
+
+  .header-tag {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-tag::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--muted);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 46px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+  }
+
+  h1 span.blue { color: var(--accent-a); }
+  h1 span.green { color: var(--accent-b); }
+
+  .header-desc {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.7;
+    max-width: 520px;
+  }
+
+  /* PROGRESS */
+  .progress-bar-wrap {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 48px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+    width: 0%;
+    transition: width 0.4s ease;
+    border-radius: 2px;
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  /* QUESTIONS */
+  .question-block {
+    display: none;
+    animation: fadeUp 0.35s ease forwards;
+  }
+
+  .question-block.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .q-number {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .q-text {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(16px, 3vw, 22px);
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 8px;
+  }
+
+  .q-sub {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+
+  /* OPTIONS */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+
+  .option-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.18s ease;
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    align-items: start;
+    width: 100%;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .option-btn:hover {
+    border-color: var(--border-bright);
+    background: #191921;
+    transform: translateX(2px);
+  }
+
+  .option-btn.selected {
+    border-color: var(--accent-a);
+    background: rgba(91,141,238,0.08);
+  }
+
+  .option-letter {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    padding-top: 1px;
+    transition: color 0.18s;
+  }
+
+  .option-btn.selected .option-letter { color: var(--accent-a); }
+
+  .option-text { color: var(--text); }
+  .option-subtext {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.5;
+  }
+
+  /* RISK BADGE on options */
+  .risk-pill {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+    font-weight: 500;
+  }
+
+  .risk-pill.cowork { background: rgba(91,141,238,0.15); color: var(--accent-a); }
+  .risk-pill.openclaw { background: rgba(61,214,140,0.15); color: var(--accent-b); }
+  .risk-pill.both { background: rgba(240,131,58,0.15); color: var(--accent-warn); }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+  }
+
+  .btn-back {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+
+  .btn-back:hover { border-color: var(--border-bright); color: var(--text); }
+
+  .btn-next {
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    padding: 12px 28px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    transition: all 0.15s;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .btn-next.enabled {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .btn-next.enabled:hover {
+    background: #fff;
+    transform: translateY(-1px);
+  }
+
+  /* DIVIDER */
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+  }
+
+  /* RESULTS */
+  #result { display: none; }
+
+  .result-tag {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .result-tag::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent-b);
+  }
+
+  .result-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+
+  .result-profile-name {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  /* SCORE BARS */
+  .score-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .score-section-title {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+
+  .score-label {
+    font-size: 12px;
+    width: 90px;
+    flex-shrink: 0;
+    color: var(--text);
+  }
+
+  .score-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .score-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+    width: 0;
+  }
+
+  .score-fill.cowork { background: var(--accent-a); }
+  .score-fill.openclaw { background: var(--accent-b); }
+  .score-fill.risk { background: var(--accent-warn); }
+
+  .score-val {
+    font-size: 11px;
+    color: var(--muted);
+    width: 28px;
+    text-align: right;
+  }
+
+  /* RECOMMENDATION CARDS */
+  .rec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 520px) { .rec-grid { grid-template-columns: 1fr; } }
+
+  .rec-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .rec-card.primary { border-color: var(--accent-b); }
+  .rec-card.primary::before {
+    content: 'RECOMMENDED';
+    position: absolute;
+    top: 14px; right: 14px;
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    color: var(--accent-b);
+    font-weight: 500;
+  }
+
+  .rec-card-tool {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .rec-card-verdict {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
+  .risk-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .risk-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* SETUP SECTION */
+  .setup-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .setup-section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .setup-step {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+    align-items: start;
+  }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .step-text { font-size: 13px; line-height: 1.6; color: var(--text); }
+  .step-note { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+  /* RISK FLAGS */
+  .risk-flags {
+    background: rgba(240,131,58,0.05);
+    border: 1px solid rgba(240,131,58,0.2);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .risk-flags-title {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-warn);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .risk-flag-item {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .risk-flag-item::before {
+    content: '⚠';
+    color: var(--accent-warn);
+    font-size: 11px;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+
+  /* RESTART */
+  .btn-restart {
+    background: none;
+    border: 1px solid var(--border-bright);
+    color: var(--muted);
+    padding: 11px 24px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+
+  .btn-restart:hover { color: var(--text); border-color: var(--text); }
+
+  /* PRINT / share note */
+  .share-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 32px;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  .share-note a { color: var(--accent-a); text-decoration: none; }
+  .share-note a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-tag">AI Agent Selector v1.0</div>
+    <h1><span class="blue">Cowork</span> or <span class="green">OpenClaw</span>?<br>Find Your Setup.</h1>
+    <p class="header-desc">Answer 8 questions. Get a tool recommendation, a personalized risk profile, and a safe-setup checklist — no tech jargon required.</p>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz">
+    <div class="progress-label">
+      <span id="prog-text">Question 1 of 8</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+
+    <!-- Q1 -->
+    <div class="question-block active" data-q="0">
+      <div class="q-number">Question 01 / 08</div>
+      <div class="q-text">How comfortable are you with software setup and troubleshooting?</div>
+      <div class="q-sub">Be honest — this affects what setup approach will actually work for you.</div>
+      <div class="options">
+        <button class="option-btn" data-score='{"cw":1,"oc":2,"risk":-2}'>
+          <span class="option-letter">A</span>
+          <div><div class="option-text">I'm technical — I can install software, configure settings, and troubleshoot on my own.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":2,"oc":1,"risk":0}'>
+          <span class="option-letter">B</span>
+          <div><div class="option-text">I can follow a clear setup guide, but I don't want to deal with advanced configuration.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":3,"oc":0,"risk":2}'>
+          <span class="option-letter">C</span>
+          <div><div class="option-text">I just want something that works out of the box. I don't want to think about setup at all.</div></div>
+        </button>
+      </div>
+      <div class="nav">
+        <span></span>
+        <button class="btn-next" id="btn-next-0">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="question-block" data-q="1">
+      <div class="q-number">Question 02 / 08</div>
+      <div class="q-text">Do you have a technical person available to help configure and maintain this?</div>
+      <div class="q-sub">A "geek helper" changes everything — they can sandbox OpenClaw safely, which you likely can't do solo.</div>
+      <div class="options">
+        <button class="option-btn" data-score='{"cw":1,"oc":2,"risk":-2}'>
+          <span class="option-letter">A</span>
+          <div><div class="option-text">Yes — I have someone technical who can set it up and help if something breaks.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":2,"oc":1,"risk":0}'>
+          <span class="option-letter">B</span>
+          <div><div class="option-text">Sometimes — I can get occasional help but not for ongoing maintenance.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":3,"oc":0,"risk":2}'>
+          <span class="option-letter">C</span>
+          <div><div class="option-text">No — I'm on my own and need everything to be self-maintaining.</div></div>
+        </button>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn-next" id="btn-next-1">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="question-block" data-q="2">
+      <div class="q-number">Question 03 / 08</div>
+      <div class="q-text">Should the agent start fresh, or access your existing files?</div>
+      <div class="q-sub">This is the single biggest factor in how much damage a worst-case scenario can cause.</div>
+      <div class="options">
+        <button class="option-btn" data-score='{"cw":2,"oc":2,"risk":-3}'>
+          <span class="option-letter">A</span>
+          <div>
+            <div class="option-text">Fresh only — I'll give it a dedicated folder with only files I consciously put there. It never sees old files.</div>
+            <div class="option-subtext">Safest option. Dramatically reduces risk for either tool.</div>
+          </div>
+        </button>
+        <button class="option-btn" data-score='{"cw":2,"oc":1,"risk":1}'>
+          <span class="option-letter">B</span>
+          <div>
+            <div class="option-text">Some existing folders — I'm okay giving it access to certain work folders, but not my whole machine.</div>
+            <div class="option-subtext">Moderate risk. Must be deliberate about which folders are in scope.</div>
+          </div>
+        </button>
+        <button class="option-btn" data-score='{"cw":1,"oc":0,"risk":4}'>
+          <span class="option-letter">C</span>
+          <div>
+            <div class="option-text">Everything — I want it to see all my files, desktop, email, and apps to be maximally helpful.</div>
+            <div class="option-subtext">High risk. <span class="risk-pill both">High risk for both tools</span></div>
+          </div>
+        </button>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn-next" id="btn-next-2">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="question-block" data-q="3">
+      <div class="q-number">Question 04 / 08</div>
+      <div class="q-text">How often will the agent read untrusted content — web pages, emails, files from strangers?</div>
+      <div class="q-sub">Prompt injection attacks (where a malicious file "tricks" the agent) are a real, documented threat for both tools.</div>
+      <div class="options">
+        <button class="option-btn" data-score='{"cw":2,"oc":2,"risk":-1}'>
+          <span class="option-letter">A</span>
+          <div><div class="option-text">Rarely or never — mostly my own documents and content I create.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":2,"oc":1,"risk":2}'>
+          <span class="option-letter">B</span>
+          <div><div class="option-text">Fairly often — client docs, downloaded files, web pages, guides from the internet.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":1,"oc":0,"risk":4}'>
+          <span class="option-letter">C</span>
+          <div>
+            <div class="option-text">All the time — random links, social content, PDFs, email attachments from anyone.</div>
+            <div class="option-subtext"><span class="risk-pill both">Critical risk</span> — this is how documented Cowork exploits have worked.</div>
+          </div>
+        </button>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn-next" id="btn-next-3">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="question-block" data-q="4">
+      <div class="q-number">Question 05 / 08</div>
+      <div class="q-text">How do you feel about a cloud AI company's servers processing the work you send the agent?</div>
+      <div class="q-sub">Cowork always sends your work to Anthropic's cloud. OpenClaw can be wired to run 100% locally — but only if set up that way.</div>
+      <div class="options">
+        <button class="option-btn" data-score='{"cw":0,"oc":3,"risk":1}'>
+          <span class="option-letter">A</span>
+          <div>
+            <div class="option-text">I strongly prefer my data never leaves my machine. Vendor access is a dealbreaker.</div>
+            <div class="option-subtext"><span class="risk-pill cowork">Rules out Cowork</span> — it always uses Anthropic's cloud.</div>
+          </div>
+        </button>
+        <button class="option-btn" data-score='{"cw":3,"oc":2,"risk":0}'>
+          <span class="option-letter">B</span>
+          <div><div class="option-text">I'm okay trusting a major AI company as long as they have solid privacy policies and encryption.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":3,"oc":1,"risk":0}'>
+          <span class="option-letter">C</span>
+          <div><div class="option-text">I'm not very concerned — if it's a reputable company, I'm fine with cloud processing.</div></div>
+        </button>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn-next" id="btn-next-4">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="question-block" data-q="5">
+      <div class="q-number">Question 06 / 08</div>
+      <div class="q-text">What's your worst-case nightmare if something went wrong?</div>
+      <div class="q-sub">Pick the one that would genuinely hurt you most.</div>
+      <div class="options">
+        <button class="option-btn" data-score='{"cw":-1,"oc":2,"risk":2}'>
+          <span class="option-letter">A</span>
+          <div>
+            <div class="option-text">A vendor or attacker gets a copy of my private files or client data.</div>
+            <div class="option-subtext"><span class="risk-pill cowork">Cowork concern</span> — documented exploits used Anthropic's own API as the exfil channel.</div>
+          </div>
+        </button>
+        <button class="option-btn" data-score='{"cw":2,"oc":-1,"risk":2}'>
+          <span class="option-letter">B</span>
+          <div>
+            <div class="option-text">Malware runs on my machine and can access anything the agent can touch.</div>
+            <div class="option-subtext"><span class="risk-pill openclaw">OpenClaw concern</span> — malicious skills on ClawHub have already done this.</div>
+          </div>
+        </button>
+        <button class="option-btn" data-score='{"cw":2,"oc":2,"risk":-1}'>
+          <span class="option-letter">C</span>
+          <div><div class="option-text">Some annoyance — broken workflows or unexpected behavior — but nothing catastrophic.</div></div>
+        </button>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn-next" id="btn-next-5">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="question-block" data-q="6">
+      <div class="q-number">Question 07 / 08</div>
+      <div class="q-text">Will you expose this assistant to outside access — internet, chat apps, or shared networks?</div>
+      <div class="q-sub">OpenClaw has a "gateway" that, if misconfigured or exposed, has thousands of documented compromised instances.</div>
+      <div class="options">
+        <button class="option-btn" data-score='{"cw":2,"oc":2,"risk":-1}'>
+          <span class="option-letter">A</span>
+          <div><div class="option-text">No — I'll only use it on my own machine via a local interface. No outside access.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":3,"oc":1,"risk":2}'>
+          <span class="option-letter">B</span>
+          <div>
+            <div class="option-text">Maybe — I might connect it to Slack, Teams, or Telegram, but kept private to my workspace.</div>
+            <div class="option-subtext"><span class="risk-pill openclaw">OpenClaw risk rises</span> significantly if gateway is exposed.</div>
+          </div>
+        </button>
+        <button class="option-btn" data-score='{"cw":3,"oc":0,"risk":4}'>
+          <span class="option-letter">C</span>
+          <div>
+            <div class="option-text">Yes — I want to access it from anywhere, possibly via bots or public-facing endpoints.</div>
+            <div class="option-subtext"><span class="risk-pill both">Critical risk for OpenClaw</span> — public gateway exposure has RCE vulnerabilities with public exploits.</div>
+          </div>
+        </button>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn-next" id="btn-next-6">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="question-block" data-q="7">
+      <div class="q-number">Question 08 / 08</div>
+      <div class="q-text">How much power do you actually need the agent to have over your computer?</div>
+      <div class="q-sub">More power = bigger blast radius if something goes wrong. Match the tool to what you actually need.</div>
+      <div class="options">
+        <button class="option-btn" data-score='{"cw":1,"oc":2,"risk":-2}'>
+          <span class="option-letter">A</span>
+          <div><div class="option-text">Light — mostly transforming documents, writing summaries, generating reports. No clicking around apps.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":3,"oc":2,"risk":1}'>
+          <span class="option-letter">B</span>
+          <div><div class="option-text">Medium — opening apps, filling forms, browser automation, some cross-app workflows.</div></div>
+        </button>
+        <button class="option-btn" data-score='{"cw":2,"oc":2,"risk":3}'>
+          <span class="option-letter">C</span>
+          <div>
+            <div class="option-text">Full — shell commands, scripting, cross-system access, touching code and production systems.</div>
+            <div class="option-subtext"><span class="risk-pill both">High risk for both</span> — either tool becomes very dangerous at this level.</div>
+          </div>
+        </button>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn-next" id="btn-next-7">See My Results →</button>
+      </div>
+    </div>
+
+  </div><!-- /quiz -->
+
+  <!-- RESULTS -->
+  <div id="result">
+    <div class="result-tag">Your Results</div>
+    <div class="result-headline" id="result-headline"></div>
+    <div class="result-profile-name" id="result-profile"></div>
+
+    <div class="score-section">
+      <div class="score-section-title">Fit Scores</div>
+      <div class="score-row">
+        <div class="score-label">Cowork</div>
+        <div class="score-track"><div class="score-fill cowork" id="bar-cw"></div></div>
+        <div class="score-val" id="val-cw"></div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">OpenClaw</div>
+        <div class="score-track"><div class="score-fill openclaw" id="bar-oc"></div></div>
+        <div class="score-val" id="val-oc"></div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">Risk Level</div>
+        <div class="score-track"><div class="score-fill risk" id="bar-risk"></div></div>
+        <div class="score-val" id="val-risk"></div>
+      </div>
+    </div>
+
+    <div class="rec-grid" id="rec-grid"></div>
+
+    <div class="setup-section" id="setup-section">
+      <div class="setup-section-title" id="setup-title"></div>
+      <div id="setup-steps"></div>
+    </div>
+
+    <div class="risk-flags" id="risk-flags-section">
+      <div class="risk-flags-title">⚠ Watch These Risks</div>
+      <div id="risk-flags-content"></div>
+    </div>
+
+    <button class="btn-restart" onclick="restart()">↩ Retake Quiz</button>
+
+    <div class="share-note">
+      <strong>To share this quiz:</strong> Save this HTML file and send it, or host it on any web server. All logic runs locally — no tracking, no data sent anywhere. To turn it into a Google Form, paste each question manually and use the "Go to section based on answer" logic with a final "collect email + show this result text" section at the end.
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+  const questions = document.querySelectorAll('.question-block');
+  let current = 0;
+  let answers = new Array(8).fill(null); // {cw, oc, risk}
+
+  // Option click
+  document.querySelectorAll('.question-block').forEach((block, qi) => {
+    const btns = block.querySelectorAll('.option-btn');
+    const nextBtn = document.getElementById(`btn-next-${qi}`);
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        answers[qi] = JSON.parse(btn.dataset.score);
+        nextBtn.classList.add('enabled');
+      });
+    });
+    nextBtn.addEventListener('click', () => {
+      if (!answers[qi]) return;
+      if (qi === 7) { showResults(); return; }
+      goNext();
+    });
+  });
+
+  function goNext() {
+    questions[current].classList.remove('active');
+    current++;
+    questions[current].classList.add('active');
+    updateProgress();
+  }
+
+  function goBack() {
+    if (current === 0) return;
+    questions[current].classList.remove('active');
+    current--;
+    questions[current].classList.add('active');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const pct = Math.round((current / 8) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('prog-text').textContent = `Question ${current + 1} of 8`;
+    document.getElementById('prog-pct').textContent = pct + '%';
+  }
+
+  function showResults() {
+    let cw = 0, oc = 0, risk = 0;
+    answers.forEach(a => {
+      if (!a) return;
+      cw += a.cw; oc += a.oc; risk += a.risk;
+    });
+
+    // Clamp risk to 0+
+    risk = Math.max(0, risk);
+
+    // Max possible: cw=22, oc=20, risk=20 (approx)
+    const cwPct = Math.min(100, Math.round((cw / 22) * 100));
+    const ocPct = Math.min(100, Math.round((oc / 20) * 100));
+    const riskPct = Math.min(100, Math.round((risk / 16) * 100));
+
+    // Determine profile
+    let profile, headline, rec, recDetail, altTool, altDetail, setupTitle, setupSteps, riskFlags;
+
+    const cloudOk = answers[4] && answers[4].cw >= 2; // comfortable with cloud
+    const hasTechHelp = answers[1] && answers[1].oc >= 1; // has tech support
+    const freshWorkspace = answers[2] && answers[2].risk <= -2; // chose fresh only
+    const lowExposure = answers[6] && answers[6].oc >= 2; // no internet exposure planned
+    const highRisk = riskPct > 55;
+    const extremeRisk = riskPct > 75;
+
+    if (extremeRisk) {
+      // Extreme risk profile — neither is safe as-is
+      profile = 'Profile: 🚨 High-Risk Configuration';
+      headline = 'Neither tool is safe in your current scenario without major changes.';
+      rec = 'Neither (Yet)';
+      recDetail = 'Your answers indicate a very high-risk setup: broad file access, untrusted content, no technical support, and possible internet exposure. Both tools become dangerous at this level. You need to change the setup before choosing.';
+      altTool = cw > oc ? 'Claude Cowork (if restructured)' : 'OpenClaw (if restructured)';
+      altDetail = 'If you implement a fresh workspace (dedicated folder only, nothing else) and restrict what the agent can see, the risk drops dramatically. Revisit after making that change.';
+      setupTitle = '🔧 What to change first';
+      setupSteps = [
+        ['Create a dedicated folder', 'Name it something like "AI Workspace." Put ONLY files you consciously want the agent to see in there. Never mount your full documents or desktop.'],
+        ['Choose an account or VM', 'Run the agent under a separate OS user account (or a virtual machine) so it physically cannot see other users\' files, credentials, or sensitive folders.'],
+        ['Stop feeding it untrusted content', 'Don\'t paste in random links, email attachments, or files from untrusted sources. Prompt injection via malicious content is how documented attacks have worked.'],
+        ['Retake this quiz', 'Once you\'ve made these changes, come back and retake — your profile will shift significantly.']
+      ];
+      riskFlags = [
+        'Broad file access + untrusted content = documented exfiltration attack path for both tools.',
+        'Without technical support, OpenClaw misconfiguration risks (exposed gateway, malicious skills) are very likely.',
+        'Internet/chat app exposure with OpenClaw has known RCE vulnerabilities with public exploits.',
+        'Start with a "fresh workspace only" approach before deploying either tool.'
+      ];
+
+    } else if (!cloudOk) {
+      // Vendor-averse — push toward local OpenClaw
+      profile = 'Profile: Privacy-First / Local-Only';
+      headline = cloudOk ? '' : 'OpenClaw (local mode) is your best fit — if set up correctly.';
+      rec = 'OpenClaw (local + isolated)';
+      recDetail = 'You\'ve indicated vendor data access is a dealbreaker. Cowork always sends your work to Anthropic\'s cloud — that rules it out for you. OpenClaw can be wired to a local model (via Ollama) with zero external calls, but it must be configured carefully.';
+      altTool = 'Claude Cowork';
+      altDetail = 'Not recommended for you. All reasoning goes to Anthropic\'s cloud. One documented exploit used Anthropic\'s own API as the exfiltration channel. If local-only is your requirement, Cowork can\'t meet it.';
+      setupTitle = '🔧 Safe Local OpenClaw Setup';
+      setupSteps = [
+        ['Install a local model first', 'Set up Ollama (ollama.ai) with a model like Llama 3 or Mistral before installing OpenClaw. Configure OpenClaw to use your local Ollama endpoint, not Anthropic or OpenAI.'],
+        ['Use a dedicated "AI workspace" folder', 'Create a folder (e.g., ~/ai-workspace) and configure OpenClaw to only mount this directory. Never give it access to your home directory root, Documents, or system folders.'],
+        ['Disable or audit all skills/extensions', 'Only install skills you\'ve personally inspected. ClawHub has had malicious skills that silently exfiltrated API keys and browser passwords.'],
+        ['Keep the gateway local-only', 'Do not expose the OpenClaw gateway port to the internet. It should only be accessible from 127.0.0.1 (your machine). Use a strong auth token.'],
+        ['Regular updates + a technical helper', 'OpenClaw requires ongoing maintenance. If you don\'t have technical support, the risk stays elevated. Budget time for this or get help.']
+      ];
+      riskFlags = [
+        'Local models are significantly less capable than cloud models — expect trade-offs in quality.',
+        'OpenClaw skills from ClawHub have included malware; vet everything you install.',
+        'If your local Ollama model calls are slow or poor quality, the temptation to switch to a cloud model breaks your privacy guarantee.',
+        freshWorkspace ? '' : 'Consider switching to fresh workspace only — limits blast radius dramatically.'
+      ].filter(Boolean);
+
+    } else if (cw >= oc && !hasTechHelp) {
+      // Non-technical, cloud-ok, no helper — Cowork is best bet
+      profile = 'Profile: Managed Convenience / Low Maintenance';
+      headline = 'Claude Cowork is your best fit — with one critical setup rule.';
+      rec = 'Claude Cowork';
+      recDetail = 'You\'re comfortable with a major vendor managing the cloud side, and you don\'t have technical support for ongoing maintenance. Cowork is better maintained by Anthropic\'s team than you\'d manage OpenClaw yourself.';
+      altTool = 'OpenClaw';
+      altDetail = 'Not recommended without technical help. Safe operation depends on sandboxing, keeping the gateway offline, and vetting all skills — ongoing work that needs someone technical.';
+      setupTitle = '🔧 Safe Cowork Setup';
+      setupSteps = [
+        ['Create a dedicated Cowork user account', 'On your Mac or Windows machine, create a separate OS user account called "Cowork" or "AI Assistant." Run Cowork only while logged into that account. This prevents it from seeing your real files.'],
+        ['Never give it your main Documents folder', 'Only drop files into Cowork\'s working folder that you consciously want it to touch. Treat it like you\'re handing a document to an assistant — deliberately.'],
+        ['Read content carefully before feeding it in', 'Don\'t paste in random web pages, email attachments, or files from untrusted sources. This is the documented attack vector for Cowork exploits.'],
+        ['Keep Cowork updated', 'Anthropic patches security issues. Make sure automatic updates are on, or check periodically for updates.'],
+        ['Review what tools/integrations it has access to', 'In Cowork settings, disable any integrations (email, calendar, cloud storage) you don\'t actively need. Less access = less blast radius.']
+      ];
+      riskFlags = [
+        'Cowork has had documented file exfiltration vulnerabilities via prompt injection — keep it away from sensitive files.',
+        'All your work context is processed on Anthropic\'s servers. Review their data policies for your specific use case.',
+        freshWorkspace ? '' : 'A fresh/isolated workspace dramatically reduces your risk — strongly recommended.'
+      ].filter(Boolean);
+
+    } else if (hasTechHelp && oc >= cw) {
+      // Has technical help, prefers control
+      profile = 'Profile: Controlled Power User';
+      headline = 'OpenClaw (hardened) is your best fit — with a technical person owning setup.';
+      rec = 'OpenClaw (hardened)';
+      recDetail = 'You have technical support and want more control. A properly configured OpenClaw — isolated workspace, local or vetted cloud model, no internet exposure, no unvetted skills — gives you the most visibility and control of any option.';
+      altTool = 'Claude Cowork';
+      altDetail = 'A solid backup. Less control, but Anthropic handles patching and security maintenance. If the technical helper moves on, Cowork becomes safer by default.';
+      setupTitle = '🔧 Hardened OpenClaw Setup';
+      setupSteps = [
+        ['Run it in a container or VM', 'Use Docker or a dedicated VM. Mount ONLY a specific workspace directory — never your home directory or system folders.'],
+        ['Lock down the gateway', 'Bind the gateway to 127.0.0.1 only. Use a strong, random auth token. Never expose it to the internet or LAN without a reverse proxy with auth.'],
+        ['Audit all skills before installing', 'Every skill is code running on your machine. Inspect the source, check the ClawHub community for reports, and only install from sources you trust.'],
+        ['Use a vetted cloud model or local model', 'If using a cloud model, ensure data retention is minimized (API-level, not the consumer product). For sensitive data, use Ollama with a local model.'],
+        ['Maintain a patch schedule', 'OpenClaw and its dependencies need regular updates. Assign one person to own this — don\'t let it drift.'],
+        ['Log all agent actions', 'Enable verbose logging so you can audit what the agent actually did if something unexpected happens.']
+      ];
+      riskFlags = [
+        'ClawHub skills have included infostealing malware — treat every skill as untrusted code.',
+        'Even with a dedicated helper, review logs periodically — agent actions can be subtle and cumulative.',
+        freshWorkspace ? '' : 'Restrict filesystem access to a dedicated workspace. The more it can see, the more can go wrong.'
+      ].filter(Boolean);
+
+    } else {
+      // Balanced / middle path
+      profile = 'Profile: Balanced Pragmatist';
+      headline = cw >= oc ? 'Claude Cowork is your best starting point.' : 'OpenClaw (with guidance) is your best fit.';
+      rec = cw >= oc ? 'Claude Cowork' : 'OpenClaw';
+      recDetail = cw >= oc
+        ? 'Your answers suggest Cowork\'s managed setup fits your needs best. You\'re comfortable with cloud processing and don\'t want to maintain an open-source agent yourself.'
+        : 'Your answers lean toward OpenClaw — you want some control and have access to technical help when needed.';
+      altTool = cw >= oc ? 'OpenClaw' : 'Claude Cowork';
+      altDetail = cw >= oc
+        ? 'OpenClaw is viable if you get technical help to configure it safely. Without that, Cowork is the lower-maintenance choice.'
+        : 'Cowork is a solid fallback — less control, but Anthropic handles security maintenance for you.';
+      setupTitle = '🔧 Setup Recommendations';
+      setupSteps = [
+        ['Start with a dedicated workspace folder', 'Don\'t give the agent broad access. Create a specific folder for its work and only put files there deliberately.'],
+        ['Be cautious with untrusted content', 'Avoid feeding in random web pages, email attachments, or documents from unknown sources — this is the primary attack vector for both tools.'],
+        ['Review integrations and permissions', 'Only enable tool integrations you actually need. Email, calendar, and cloud storage access increase risk significantly.'],
+        ['Keep it updated', 'Security patches matter. Whether it\'s Cowork auto-updates or manual OpenClaw patches, don\'t let it fall behind.']
+      ];
+      riskFlags = [
+        highRisk ? 'Your risk score is elevated — revisit the workspace access and untrusted content questions.' : '',
+        'Both tools are powerful agents with real security track records. Don\'t treat them like ordinary apps.',
+        'If your use case grows to include sensitive files or credentials, revisit this assessment.'
+      ].filter(Boolean);
+    }
+
+    // Render results
+    document.getElementById('quiz').style.display = 'none';
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('result-headline').textContent = headline;
+    document.getElementById('result-profile').textContent = profile;
+
+    // Animate bars
+    setTimeout(() => {
+      document.getElementById('bar-cw').style.width = cwPct + '%';
+      document.getElementById('bar-oc').style.width = ocPct + '%';
+      document.getElementById('bar-risk').style.width = riskPct + '%';
+      document.getElementById('val-cw').textContent = cwPct + '%';
+      document.getElementById('val-oc').textContent = ocPct + '%';
+      document.getElementById('val-risk').textContent = riskPct + '%';
+    }, 100);
+
+    // Rec cards
+    const riskColor = riskPct > 65 ? 'var(--accent-risk)' : riskPct > 35 ? 'var(--accent-warn)' : 'var(--accent-b)';
+    const riskLabel = riskPct > 65 ? 'HIGH RISK' : riskPct > 35 ? 'MODERATE RISK' : 'LOWER RISK';
+
+    document.getElementById('rec-grid').innerHTML = `
+      <div class="rec-card primary">
+        <div class="rec-card-tool" style="color:var(--accent-b)">${rec}</div>
+        <div class="rec-card-verdict">${recDetail}</div>
+        <div class="risk-indicator">
+          <div class="risk-dot" style="background:${riskColor}"></div>
+          <span style="color:${riskColor}">${riskLabel}</span>
+        </div>
+      </div>
+      <div class="rec-card">
+        <div class="rec-card-tool" style="color:var(--muted)">${altTool}</div>
+        <div class="rec-card-verdict">${altDetail}</div>
+      </div>
+    `;
+
+    // Setup steps
+    document.getElementById('setup-title').textContent = setupTitle;
+    document.getElementById('setup-steps').innerHTML = setupSteps.map((s, i) => `
+      <div class="setup-step">
+        <div class="step-num">${i + 1}</div>
+        <div>
+          <div class="step-text"><strong>${s[0]}</strong></div>
+          <div class="step-note">${s[1]}</div>
+        </div>
+      </div>
+    `).join('');
+
+    // Risk flags
+    document.getElementById('risk-flags-content').innerHTML = riskFlags.map(f => `
+      <div class="risk-flag-item">${f}</div>
+    `).join('');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function restart() {
+    current = 0;
+    answers = new Array(8).fill(null);
+    document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.btn-next').forEach(b => b.classList.remove('enabled'));
+    document.getElementById('bar-cw').style.width = '0';
+    document.getElementById('bar-oc').style.width = '0';
+    document.getElementById('bar-risk').style.width = '0';
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('quiz').style.display = 'block';
+    questions.forEach((q, i) => { q.classList.toggle('active', i === 0); });
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
